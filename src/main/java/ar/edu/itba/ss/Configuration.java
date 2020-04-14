@@ -6,11 +6,21 @@ public class Configuration {
     private double time;
     private double dt;
     private double fps;
+    private String dynamicFile;
 
-    Configuration(double time, double dt, double fps) {
+    Configuration(double time, double dt, double fps, String dynamicFile) {
         this.time = time;
         this.dt = dt;
         this.fps = fps;
+        this.dynamicFile = dynamicFile;
+    }
+
+    public String getDynamicFile() {
+        return dynamicFile;
+    }
+
+    public void setDynamicFile(String dynamicFile) {
+        this.dynamicFile = dynamicFile;
     }
 
     public double getTime() {

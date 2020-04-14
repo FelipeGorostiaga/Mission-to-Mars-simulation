@@ -16,9 +16,9 @@ public class Planet implements Cloneable{
     private double prevAx;
     private double prevAy;
     private double radius;
-    private int[] colour;
 
-    public Planet(int id, double x, double y, double vx, double vy, double mass, double radius, int[] colour) {
+
+    Planet(int id, double x, double y, double vx, double vy, double mass, double radius) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -26,10 +26,9 @@ public class Planet implements Cloneable{
         this.vy = vy;
         this.mass = mass;
         this.radius = radius;
-        this.colour = colour;
     }
 
-    public Planet(int id, double x, double y, double vx, double vy){
+    Planet(int id, double x, double y, double vx, double vy){
         this.id = id;
         this.x = x;
         this.y = y;
@@ -139,14 +138,6 @@ public class Planet implements Cloneable{
 
     public void setRadius(double radius) {
         this.radius = radius;
-    }
-
-    public int[] getColour() {
-        return colour;
-    }
-
-    public void setColour(int[] colour) {
-        this.colour = colour;
     }
 
     Planet getClone() throws CloneNotSupportedException {
