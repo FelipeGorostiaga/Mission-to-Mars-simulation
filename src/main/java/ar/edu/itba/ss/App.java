@@ -13,7 +13,7 @@ public class App {
 
     private static final int SUN_ID = 0;
 
-    private static double G = 6.693*Math.pow(10, -11);
+    private static double G = 6.693 * Math.pow(10, -11);
     private static final double AU = 149598073;
 
     // Spaceship
@@ -51,37 +51,15 @@ public class App {
         dt = configuration.getDt();
         fps = configuration.getFps();
 
-        //////////////////////////////
-        ///////// SIMULATION /////////
-        //////////////////////////////
-
-        assert planets != null;
-        Planet earth = planets.get(0);
 
         // Get earth-sun angle
-        double earthSunAngle;
-        if (earth.getX() == 0) {
-            earthSunAngle = Math.signum(earth.getY()) * Math.PI / 2;
-        }
-        else{
-            earthSunAngle = Math.atan(earth.getY() / earth.getX());
-            if ((earth.getX() < 0 && earth.getY() > 0) || (earth.getX() < 0 && earth.getY() < 0)){
-                earthSunAngle += Math.PI;
-            }
-        }
-
+        assert planets != null;
+        Planet earth = planets.get(0);
+        double earthSunAngle = getEarthSunAngle(earth);
         // Get earth-sun velocity angle
-        double velocityAngle;
-        if (earth.getVx() == 0) {
-            velocityAngle = Math.signum(earth.getVy()) * Math.PI / 2;
-        }
-        else {
-            velocityAngle = Math.atan(earth.getVy() / earth.getVx());
-            if ((earth.getVx() < 0 && earth.getVy() > 0) || (earth.getVx() < 0 && earth.getVy() < 0)){
-                velocityAngle += Math.PI;
-            }
-        }
+        double velocityAngle = getEarthSunVelocityAngle(earth);
 
+        // Check velocity with teacher?
         double spaceshipX = earth.getX() + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
         double spaceshipY = earth.getY() + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
         double spaceshipVx = earth.getVx() + ((SPACESHIP_SPEED + SPACE_STATION_SPEED) * Math.cos(velocityAngle));
@@ -92,8 +70,72 @@ public class App {
         planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.08));
 
         List<Planet> oldPlanets = clonePlanets(planets);
+        initializePlanets(planets, oldPlanets);
+        int iterations = 0;
+        printPlanets(planets, iterations);
 
+        int frame = 0;
+        for(double t = 0 ; t < time ; t += dt) {
+            oldPlanets = clonePlanets(planets);
+            for (Planet p : planets) {
+                if (p.getId() != SUN_ID) {
+                    double[] force = force(p, oldPlanets);
+                    p.setAx(force[0]);
+                    p.setAy(force[1]);
 
+                    p.setX(p.getX() + p.getVx() * dt + (2.0/3) * p.getAx() * Math.pow(dt,2) - (1.0/6) * p.getPrevAx() *
+                            Math.pow(dt,2));
+                    p.setY(p.getY() + p.getVy() * dt + (2.0/3) * p.getAy() * Math.pow(dt,2) - (1.0/6) * p.getPrevAy() *
+                            Math.pow(dt,2));
+                }
+            }
+            for (Planet p : planets) {
+                if (p.getId() != SUN_ID) {
+
+                    double[] newForce = force(p, planets);
+                    double newAx = newForce[0];
+                    double newAy = newForce[1];
+
+                    p.setVx(p.getVx() + (1.0 / 3) * newAx * dt + (5.0 / 6) * p.getAx() * dt - (1.0/6) * p.getPrevAx() * dt);
+                    p.setVy(p.getVy() + (1.0 / 3) * newAy * dt + (5.0 / 6) * p.getAy() * dt - (1.0/6) * p.getPrevAy() * dt);
+                    p.setPrevAx(p.getAx());
+                    p.setPrevAy(p.getPrevAy());
+                }
+            }
+
+            if(frame++ % fps == 0) {
+                printPlanets(planets, iterations++);
+            }
+        }
+
+    }
+
+    private static double getEarthSunAngle(Planet earth) {
+        double earthSunAngle;
+        if (earth.getX() == 0) {
+            return Math.signum(earth.getY()) * Math.PI / 2;
+        }
+        else{
+            earthSunAngle = Math.atan(earth.getY() / earth.getX());
+            if ((earth.getX() < 0 && earth.getY() > 0) || (earth.getX() < 0 && earth.getY() < 0)){
+                earthSunAngle += Math.PI;
+            }
+            return earthSunAngle;
+        }
+    }
+
+    private static double getEarthSunVelocityAngle(Planet earth) {
+        double velocityAngle;
+        if (earth.getVx() == 0) {
+            return Math.signum(earth.getVy()) * Math.PI / 2;
+        }
+        else {
+            velocityAngle = Math.atan(earth.getVy() / earth.getVx());
+            if ((earth.getVx() < 0 && earth.getVy() > 0) || (earth.getVx() < 0 && earth.getVy() < 0)){
+                velocityAngle += Math.PI;
+            }
+            return velocityAngle;
+        }
     }
 
 
@@ -107,8 +149,8 @@ public class App {
 
     private static void firstStep(Planet planet, List<Planet> planets) {
         double[] force = force(planet, planets);
-        planet.getPrevAx() = force[0];
-        planet.getPrevAy() = force[1];
+        planet.setPrevAx(force[0]);
+        planet.setPrevAy(force[1]);
         planet.setVx(planet.getVx() + dt * planet.getPrevAx());
         planet.setVy(planet.getVy() + dt * planet.getPrevAy());
         planet.setX(planet.getX() + dt * planet.getVx() + Math.pow(dt,2) * planet.getPrevAx());
@@ -132,7 +174,7 @@ public class App {
         force[1] = force[1]/p.getMass();
         return force;
     }
-    
+
     private static double gravitationalForce(Planet p1, Planet p2){
         double distance = Math.sqrt(Math.pow(p1.getX() - p2.getX(), 2) + Math.pow(p1.getY() - p2.getY(), 2));
         return G * (p1.getMass() * p2.getMass() / Math.pow(distance, 2));
@@ -151,7 +193,9 @@ public class App {
         return clones;
     }
 
-    private static void printPlanets(List<Planet> planets) {
+    private static void printPlanets(List<Planet> planets, int iterations) {
+        System.out.println(planets.size());
+        System.out.println(iterations);
         for (Planet p : planets){
             System.out.println(p.getX() + "\t" + p.getY() + "\t" + p.getVx() + "\t" + p.getVy() + "\t" + p.getRadius());
         }
