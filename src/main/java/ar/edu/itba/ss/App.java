@@ -13,7 +13,7 @@ public class App {
 
     private static final int SUN_ID = 0;
 
-    private static double G = 6.693 * Math.pow(10, -11);
+    private static double G = 6.673 * Math.pow(10, -11);
     private static final double AU = 149598073;
 
     // Spaceship
@@ -30,7 +30,6 @@ public class App {
 
     // Sun
     private static final double SUN_MASS = 1.988544 * Math.pow(10,30);
-    private static final double SUN_RADIUS = 696340000;‬
 
     // Earth
     private static final double EARTH_MASS = 5.97219 * Math.pow(10,24);
@@ -50,7 +49,6 @@ public class App {
         time = configuration.getTime();
         dt = configuration.getDt();
         fps = configuration.getFps();
-
 
         // Get earth-sun angle
         assert planets != null;
@@ -131,7 +129,7 @@ public class App {
         }
         else {
             velocityAngle = Math.atan(earth.getVy() / earth.getVx());
-            if ((earth.getVx() < 0 && earth.getVy() > 0) || (earth.getVx() < 0 && earth.getVy() < 0)){
+            if ((earth.getVx() < 0 && earth.getVy() > 0) || (earth.getVx() < 0 && earth.getVy() < 0)) {
                 velocityAngle += Math.PI;
             }
             return velocityAngle;
@@ -155,7 +153,6 @@ public class App {
         planet.setVy(planet.getVy() + dt * planet.getPrevAy());
         planet.setX(planet.getX() + dt * planet.getVx() + Math.pow(dt,2) * planet.getPrevAx());
         planet.setY(planet.getY() + dt * planet.getVy() + Math.pow(dt,2) * planet.getPrevAy());
-
     }
 
     private static double[] force (Planet p, List<Planet> oldPlanets){
@@ -196,8 +193,11 @@ public class App {
     private static void printPlanets(List<Planet> planets, int iterations) {
         System.out.println(planets.size());
         System.out.println(iterations);
+
         for (Planet p : planets){
-            System.out.println(p.getX() + "\t" + p.getY() + "\t" + p.getVx() + "\t" + p.getVy() + "\t" + p.getRadius());
+            double auX  = (p.getX() / 1000) / AU;
+            double auY = (p.getY() / 1000) / AU;
+            System.out.println(p.getId() + "\t" + auX + "\t" + auY + "\t" + p.getVx() + "\t" + p.getVy() + "\t" + p.getRadius());
         }
     }
 
