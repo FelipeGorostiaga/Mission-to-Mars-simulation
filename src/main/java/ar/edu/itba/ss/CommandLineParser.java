@@ -17,7 +17,6 @@ public class CommandLineParser {
         return options;
     }
 
-
     static Configuration parseCommandLine(String[] args) {
         Options options = createOptions();
         double time = 0, dt = 0, fps = 0;

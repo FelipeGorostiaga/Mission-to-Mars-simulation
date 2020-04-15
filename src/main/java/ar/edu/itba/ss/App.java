@@ -10,34 +10,24 @@ public class App {
     private static double dt;
     private static double time;
     private static double fps;
-
     private static final int SUN_ID = 0;
-
     private static double G = 6.673 * Math.pow(10, -11);
     private static final double AU = 149598073;
-
     // Spaceship
     private static final double SPACESHIP_DISTANCE = 1500000;
     private static final double SPACESHIP_SPEED = 8000;
     private static final double SPACESHIP_MASS = 2 * Math.pow(10,5);
 
-    // Station
-    private static final double SPACE_STATION_SPEED = 7120;
-
     // Mars
     private static final double MARS_MASS = 6.4171 * Math.pow(10,23);
     private static final double MARS_RADIUS = 3389500;
-
     // Sun
     private static final double SUN_MASS = 1.988544 * Math.pow(10,30);
-
     // Earth
     private static final double EARTH_MASS = 5.97219 * Math.pow(10,24);
     private static final double EARTH_RADIUS = 6371000;
 
-
     public static void main( String[] args ) {
-
         Configuration configuration = CommandLineParser.parseCommandLine(args);
         List<Planet> planets = null;
         try {
@@ -56,16 +46,20 @@ public class App {
         double earthSunAngle = getEarthSunAngle(earth);
         // Get earth-sun velocity angle
         double velocityAngle = getEarthSunVelocityAngle(earth);
-
         // Check velocity with teacher?
         double spaceshipX = earth.getX() + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
         double spaceshipY = earth.getY() + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
-        double spaceshipVx = earth.getVx() + ((SPACESHIP_SPEED + SPACE_STATION_SPEED) * Math.cos(velocityAngle));
-        double spaceshipVy = earth.getVy() + ((SPACESHIP_SPEED + SPACE_STATION_SPEED) * Math.sin(velocityAngle));
-
+        double spaceshipVx = earth.getVx() + SPACESHIP_SPEED  * Math.cos(velocityAngle);
+        double spaceshipVy = earth.getVy() + SPACESHIP_SPEED * Math.sin(velocityAngle);
         // Add Sun and Spaceship
-        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.14));
+        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.2));
         planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.08));
+
+        earth.setMass(EARTH_MASS);
+        earth.setRadius(0.15);
+        Planet mars = planets.get(1);
+        mars.setMass(MARS_MASS);
+        mars.setRadius(0.12);
 
         List<Planet> oldPlanets = clonePlanets(planets);
         initializePlanets(planets, oldPlanets);
@@ -193,7 +187,6 @@ public class App {
     private static void printPlanets(List<Planet> planets, int iterations) {
         System.out.println(planets.size());
         System.out.println(iterations);
-
         for (Planet p : planets){
             double auX  = (p.getX() / 1000) / AU;
             double auY = (p.getY() / 1000) / AU;
