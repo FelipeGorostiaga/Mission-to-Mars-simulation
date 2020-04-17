@@ -3,16 +3,26 @@ package ar.edu.itba.ss;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 public class App {
 
+    private static final LocalDate baseDate = LocalDate.parse("2020-04-06", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+
     private static double dt;
     private static final int SUN_ID = 0;
+    private static final int EARTH_ID = 1;
+    private static final int MARS_ID = 2;
+    private static final int SPACESHIP_ID = 3;
+
     private static double G = 6.673 * Math.pow(10, -11);
 
     private static final double MISSION_SUCCESS_DISTANCE = 3000000; //3000km
+    private static final double SECONDS_IN_DAY = 86400;
+    private static final double MAX_TRAVELLING_TIME = 86400000; //1000 days in seconds
 
     // Spaceship
     private static final double SPACESHIP_DISTANCE = 1500000; //15000km
@@ -54,8 +64,7 @@ public class App {
         double fps = configuration.getFps();
         dt = configuration.getDt();
 
-        assert planets != null;
-        Planet earth = planets.get(0);
+        Planet earth = getPlanetById(planets, EARTH_ID);
         double earthSunAngle = getEarthSunAngle(earth);
         double velocityAngle = getEarthSunVelocityAngle(earth);
 
@@ -66,10 +75,11 @@ public class App {
 
         // Add Sun and Spaceship
         planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, SUN_RADIUS));
-        planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, SPACESHIP_RADIUS));
+        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, SPACESHIP_RADIUS));
         earth.mass = EARTH_MASS;
         earth.radius = EARTH_RADIUS;
-        Planet mars = planets.get(1);
+
+        Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
         mars.radius = MARS_RADIUS;
 
@@ -80,7 +90,7 @@ public class App {
         int iterations = 0;
         printPlanets(writer, planets, iterations++);
         int frame = 0;
-        for(double t = 0; t < time; t += dt) {
+        for(double t = 0; t < MAX_TRAVELLING_TIME; t += dt) {
             oldPlanets = clonePlanets(planets);
             for (Planet p : planets) {
                 if (p.id != SUN_ID) {
@@ -103,11 +113,13 @@ public class App {
                 }
             }
             double distanceToMars = calculateDistanceToMars(planets);
-            System.out.println(distanceToMars/1000 + "\t" + t);
             if(distanceToMars < minDistanceToMars) {
                 minDistanceToMars = distanceToMars;
                 if(distanceToMars < MISSION_SUCCESS_DISTANCE + MARS_RADIUS) {
+                    Planet spaceship = planets.get(SPACESHIP_ID);
                     System.out.println("Mission Success!! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
+                    System.out.println("Time taken to arrive to Mars: " + t/60/60/24 + "days");
+                    System.out.println("Speed of spaceship: " + Math.sqrt( Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2)) + "km/s");
                     break;
                 }
             }
@@ -116,8 +128,8 @@ public class App {
             }
         }
         writer.close();
-        System.out.println("Tiempo total: " + time + "s");
-        System.out.println("Distancia minima a Marte: " + (minDistanceToMars/1000) + "km");
+        System.out.println("Total time: " + MAX_TRAVELLING_TIME/60/60/24 + "days");
+        System.out.println("Minimum distance to mars: " + (minDistanceToMars/1000) + "km");
     }
 
     private static double calculateDistanceToMars(List<Planet> planets) {
@@ -126,8 +138,36 @@ public class App {
         return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2)) - MARS_RADIUS;
     }
 
-    private static double getEarthSunAngle(Planet earth) {
 
+    private static void evolvePlanetStates(List<Planet> planets, double seconds) {
+        List<Planet> oldPlanets;
+        double dt = 10;
+        for(double t = 0; t < seconds; t += dt) {
+            oldPlanets = clonePlanets(planets);
+            for (Planet p : planets) {
+                if (p.id != SUN_ID) {
+                    double[] force = force(p, oldPlanets);
+                    p.ax = force[0];
+                    p.ay = force[1];
+                    p.x = p.x + p.vx * dt + (2.0 / 3) * p.ax * Math.pow(dt, 2) - (1.0 / 6) * p.prevAx * Math.pow(dt, 2);
+                    p.y = p.y + p.vy * dt + (2.0 / 3) * p.ay * Math.pow(dt, 2) - (1.0 / 6) * p.prevAy * Math.pow(dt, 2);
+                }
+            }
+            for (Planet p : planets) {
+                if (p.id != SUN_ID) {
+                    double[] newForce = force(p, planets);
+                    double newAx = newForce[0];
+                    double newAy = newForce[1];
+                    p.vx = p.vx + (1.0 / 3) * newAx * dt + (5.0 / 6) * p.ax * dt - (1.0 / 6) * p.prevAx * dt;
+                    p.vy = p.vy + (1.0 / 3) * newAy * dt + (5.0 / 6) * p.ay * dt - (1.0 / 6) * p.prevAy * dt;
+                    p.prevAx = p.ax;
+                    p.prevAy = p.ay;
+                }
+            }
+        }
+    }
+
+    private static double getEarthSunAngle(Planet earth) {
         double earthSunAngle;
         if (earth.x == 0) {
             return Math.signum(earth.y) * Math.PI / 2;
@@ -142,7 +182,6 @@ public class App {
     }
 
     private static double getEarthSunVelocityAngle(Planet earth) {
-
         double velocityAngle;
         if (earth.vx == 0) {
             return Math.signum(earth.vy) * Math.PI / 2;
@@ -212,12 +251,21 @@ public class App {
         return clones;
     }
 
+
+    //Print positions in kms, and velocities in km/s
     private static void printPlanets(PrintWriter writer, List<Planet> planets, int iterations) {
         writer.println(planets.size());
         writer.println(iterations);
         for (Planet p : planets) {
             writer.println(p.id + "\t" + p.x/1000 + "\t" + p.y/1000 + "\t" + p.vx/1000 + "\t" + p.vy/1000 + "\t" + p.radius/1000);
         }
+    }
+
+    private static Planet getPlanetById(List<Planet> planets, int id) {
+        for(Planet p : planets) {
+            if(p.id == id) return p;
+        }
+        return null;
     }
 
 }
