@@ -18,6 +18,7 @@ public class App {
     private static final double SPACESHIP_DISTANCE = 1500000; //15000km
     private static final double SPACESHIP_SPEED = 8000;
     private static final double SPACESHIP_MASS = 2 * Math.pow(10,5);
+    private static final double SPACESHIP_RADIUS = 10000; //check for simulation
     // Mars
     private static final double MARS_MASS = 6.4171 * Math.pow(10,23);
     private static final double MARS_RADIUS = 3389500;
@@ -65,7 +66,7 @@ public class App {
 
         // Add Sun and Spaceship
         planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, SUN_RADIUS));
-        planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 2));
+        planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, SPACESHIP_RADIUS));
         earth.mass = EARTH_MASS;
         earth.radius = EARTH_RADIUS;
         Planet mars = planets.get(1);
@@ -103,11 +104,11 @@ public class App {
             }
             double distanceToMars = calculateDistanceToMars(planets);
             System.out.println(distanceToMars/1000 + "\t" + t);
-
             if(distanceToMars < minDistanceToMars) {
                 minDistanceToMars = distanceToMars;
                 if(distanceToMars < MISSION_SUCCESS_DISTANCE + MARS_RADIUS) {
                     System.out.println("Mission Success!! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
+                    break;
                 }
             }
             if(frame++ % fps == 0) {
@@ -122,7 +123,7 @@ public class App {
     private static double calculateDistanceToMars(List<Planet> planets) {
         Planet spaceship = planets.stream().filter(planet -> planet.id == 4).findAny().orElse(null);
         Planet mars = planets.stream().filter(planet -> planet.id == 2).findAny().orElse(null);
-        return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2));
+        return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2)) - MARS_RADIUS;
     }
 
     private static double getEarthSunAngle(Planet earth) {
@@ -198,7 +199,6 @@ public class App {
         return G*(p1.mass*p2.mass/Math.pow(distance, 2));
     }
 
-    //checked
     private static List<Planet> clonePlanets(List<Planet> planets) {
         List<Planet> clones = new ArrayList<>();
         for (Planet p: planets){
@@ -212,7 +212,6 @@ public class App {
         return clones;
     }
 
-    // checked
     private static void printPlanets(PrintWriter writer, List<Planet> planets, int iterations) {
         writer.println(planets.size());
         writer.println(iterations);
