@@ -20,15 +20,19 @@ public class App {
 
     private static double G = 6.673 * Math.pow(10, -11);
 
-    private static final double MISSION_SUCCESS_DISTANCE = 3000000; //3000km
+    private static final int DAYS_IN_A_YEAR = 365;
     private static final double SECONDS_IN_DAY = 86400;
+    private static final double MISSION_SUCCESS_DISTANCE = 3000000; //3000km
+
     private static final double MAX_TRAVELLING_TIME = 86400000; //1000 days in seconds
 
     // Spaceship
     private static final double SPACESHIP_DISTANCE = 1500000; //15000km
     private static final double SPACESHIP_SPEED = 8000;
+    private static final double STATION_SPEED = 7120;
     private static final double SPACESHIP_MASS = 2 * Math.pow(10,5);
-    private static final double SPACESHIP_RADIUS = 10000; //check for simulation
+    //TODO : check this
+    private static final double SPACESHIP_RADIUS = 10000;
     // Mars
     private static final double MARS_MASS = 6.4171 * Math.pow(10,23);
     private static final double MARS_RADIUS = 3389500;
@@ -65,19 +69,18 @@ public class App {
         dt = configuration.getDt();
 
         Planet earth = getPlanetById(planets, EARTH_ID);
+        earth.mass = EARTH_MASS;
+        earth.radius = EARTH_RADIUS;
         double earthSunAngle = getEarthSunAngle(earth);
         double velocityAngle = getEarthSunVelocityAngle(earth);
-
         double spaceshipX = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
         double spaceshipY = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
-        double spaceshipVx = earth.vx + SPACESHIP_SPEED  * Math.cos(velocityAngle);
-        double spaceshipVy = earth.vy + SPACESHIP_SPEED * Math.sin(velocityAngle);
+        double spaceshipVx = earth.vx + (SPACESHIP_SPEED + STATION_SPEED) * Math.cos(velocityAngle);
+        double spaceshipVy = earth.vy + (SPACESHIP_SPEED + STATION_SPEED) * Math.sin(velocityAngle);
 
         // Add Sun and Spaceship
         planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, SUN_RADIUS));
         planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, SPACESHIP_RADIUS));
-        earth.mass = EARTH_MASS;
-        earth.radius = EARTH_RADIUS;
 
         Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
@@ -89,6 +92,25 @@ public class App {
         initializePlanets(planets, oldPlanets);
         int iterations = 0;
         printPlanets(writer, planets, iterations++);
+
+        //Change starting date
+        /*LocalDate startDate;
+        for(int i = 0 ; i < DAYS_IN_A_YEAR * 2 ; i++) {
+            boolean tripSuccess = true;
+
+
+
+
+            //restore to default values
+            //evolve
+            evolvePlanetStates(planets, SECONDS_IN_DAY * i);
+            startDate = baseDate.plusDays(i);
+
+            System.out.println("Trip " + i + " - " + startDate);
+            System.out.println("Minimum distance to mars: ");
+            System.out.println(tripSuccess? "Successful" : "Unsuccessful");
+        }*/
+
         int frame = 0;
         for(double t = 0; t < MAX_TRAVELLING_TIME; t += dt) {
             oldPlanets = clonePlanets(planets);
@@ -115,7 +137,7 @@ public class App {
             double distanceToMars = calculateDistanceToMars(planets);
             if(distanceToMars < minDistanceToMars) {
                 minDistanceToMars = distanceToMars;
-                if(distanceToMars < MISSION_SUCCESS_DISTANCE + MARS_RADIUS) {
+                if(distanceToMars < MISSION_SUCCESS_DISTANCE) {
                     Planet spaceship = planets.get(SPACESHIP_ID);
                     System.out.println("Mission Success!! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
                     System.out.println("Time taken to arrive to Mars: " + t/60/60/24 + "days");
@@ -133,8 +155,8 @@ public class App {
     }
 
     private static double calculateDistanceToMars(List<Planet> planets) {
-        Planet spaceship = planets.stream().filter(planet -> planet.id == 4).findAny().orElse(null);
-        Planet mars = planets.stream().filter(planet -> planet.id == 2).findAny().orElse(null);
+        Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
+        Planet mars = getPlanetById(planets, MARS_ID);
         return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2)) - MARS_RADIUS;
     }
 
