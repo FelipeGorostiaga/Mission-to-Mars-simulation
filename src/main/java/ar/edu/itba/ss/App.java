@@ -11,9 +11,11 @@ public class App {
     private static double dt;
     private static final int SUN_ID = 0;
     private static double G = 6.673 * Math.pow(10, -11);
-    private static final double AU = 149598073;
+
+    private static final double MISSION_SUCCESS_DISTANCE = 3000000; //3000km
+
     // Spaceship
-    private static final double SPACESHIP_DISTANCE = 1500000;
+    private static final double SPACESHIP_DISTANCE = 1500000; //15000km
     private static final double SPACESHIP_SPEED = 8000;
     private static final double SPACESHIP_MASS = 2 * Math.pow(10,5);
     // Mars
@@ -21,9 +23,14 @@ public class App {
     private static final double MARS_RADIUS = 3389500;
     // Sun
     private static final double SUN_MASS = 1.988544 * Math.pow(10,30);
+    private static final double SUN_RADIUS = 696340000;
     // Earth
     private static final double EARTH_MASS = 5.97219 * Math.pow(10,24);
     private static final double EARTH_RADIUS = 6371000;
+
+    // Saturn - part 3
+    // private static final double JUPITER_MASS = ;
+    // private static final double JUPITER_RADIUS = ;
 
     public static void main( String[] args ) {
         File file = new File("output.txt");
@@ -42,89 +49,75 @@ public class App {
             System.out.println("Error reading dynamic file...");
             System.exit(1);
         }
-
         double time = configuration.getTime();
         double fps = configuration.getFps();
         dt = configuration.getDt();
 
-
-        // Get earth-sun angle
         assert planets != null;
         Planet earth = planets.get(0);
         double earthSunAngle = getEarthSunAngle(earth);
-        // Get earth-sun velocity angle
         double velocityAngle = getEarthSunVelocityAngle(earth);
-        // TODO: Check velocity of spaceship
+
         double spaceshipX = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
         double spaceshipY = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
         double spaceshipVx = earth.vx + SPACESHIP_SPEED  * Math.cos(velocityAngle);
         double spaceshipVy = earth.vy + SPACESHIP_SPEED * Math.sin(velocityAngle);
 
-
         // Add Sun and Spaceship
-        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 5));
+        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, SUN_RADIUS));
         planets.add(new Planet(4, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 2));
         earth.mass = EARTH_MASS;
-        earth.radius = 4;
+        earth.radius = EARTH_RADIUS;
         Planet mars = planets.get(1);
         mars.mass = MARS_MASS;
-        mars.radius = 3;
+        mars.radius = MARS_RADIUS;
 
         double minDistanceToMars = Double.POSITIVE_INFINITY;
-        double day = 0;
 
         List<Planet> oldPlanets = clonePlanets(planets);
         initializePlanets(planets, oldPlanets);
         int iterations = 0;
         printPlanets(writer, planets, iterations++);
-
         int frame = 0;
         for(double t = 0; t < time; t += dt) {
             oldPlanets = clonePlanets(planets);
             for (Planet p : planets) {
                 if (p.id != SUN_ID) {
                     double[] force = force(p, oldPlanets);
-
                     p.ax = force[0];
                     p.ay = force[1];
-
-                    /* Beeman */
                     p.x = p.x + p.vx * dt + (2.0 / 3) * p.ax * Math.pow(dt, 2) - (1.0 / 6) * p.prevAx * Math.pow(dt, 2);
                     p.y = p.y + p.vy * dt + (2.0 / 3) * p.ay * Math.pow(dt, 2) - (1.0 / 6) * p.prevAy * Math.pow(dt, 2);
-
                 }
             }
             for (Planet p : planets) {
                 if (p.id != SUN_ID) {
-
                     double[] newForce = force(p, planets);
                     double newAx = newForce[0];
                     double newAy = newForce[1];
-
                     p.vx = p.vx + (1.0 / 3) * newAx * dt + (5.0 / 6) * p.ax * dt - (1.0 / 6) * p.prevAx * dt;
                     p.vy = p.vy + (1.0 / 3) * newAy * dt + (5.0 / 6) * p.ay * dt - (1.0 / 6) * p.prevAy * dt;
-
                     p.prevAx = p.ax;
                     p.prevAy = p.ay;
-
                 }
             }
             double distanceToMars = calculateDistanceToMars(planets);
+            System.out.println(distanceToMars/1000 + "\t" + t);
+
             if(distanceToMars < minDistanceToMars) {
-                System.out.println("Entered here!");
-                day = t;
                 minDistanceToMars = distanceToMars;
+                if(distanceToMars < MISSION_SUCCESS_DISTANCE + MARS_RADIUS) {
+                    System.out.println("Mission Success!! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
+                }
             }
             if(frame++ % fps == 0) {
                 printPlanets(writer, planets, iterations++);
             }
         }
         writer.close();
-        System.out.println("Tiempo total: " + time + " days");
-        System.out.println("Distancia minima a Marte: " + (minDistanceToMars/1000)/AU + "AU");
-        System.out.println(day + " dias despues de partir");
+        System.out.println("Tiempo total: " + time + "s");
+        System.out.println("Distancia minima a Marte: " + (minDistanceToMars/1000) + "km");
     }
-
 
     private static double calculateDistanceToMars(List<Planet> planets) {
         Planet spaceship = planets.stream().filter(planet -> planet.id == 4).findAny().orElse(null);
@@ -224,20 +217,8 @@ public class App {
         writer.println(planets.size());
         writer.println(iterations);
         for (Planet p : planets) {
-            double auX  = p.x / 1000;
-            auX = auX / AU;
-            double auY = p.y / 1000;
-            auY = auY / AU;
-            writer.println(p.id + "\t" + auX + "\t" + auY + "\t" + p.vx + "\t" + p.vy + "\t" + p.radius);
+            writer.println(p.id + "\t" + p.x/1000 + "\t" + p.y/1000 + "\t" + p.vx/1000 + "\t" + p.vy/1000 + "\t" + p.radius/1000);
         }
-
-        /*System.out.println(planets.size());
-        System.out.println(iterations);
-        for (Planet p : planets){
-            double auX  = (p.getX() / 1000) / AU;
-            double auY = (p.getY() / 1000) / AU;
-            System.out.println(p.getId() + "\t" + auX + "\t" + auY + "\t" + p.getVx() + "\t" + p.getVy() + "\t" + p.getRadius());
-        }*/
     }
 
 }
