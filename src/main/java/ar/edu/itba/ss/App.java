@@ -159,17 +159,25 @@ public class App {
     }
 
     private static void restoreToBaseValues(List<Planet> planets, BaseValues baseValues) {
+
         Planet earth = getPlanetById(planets, EARTH_ID);
         Planet mars = getPlanetById(planets, MARS_ID);
+        Planet ship = getPlanetById(planets, SPACESHIP_ID);
+
         earth.x = baseValues.earthX;
         earth.y = baseValues.earthY;
         earth.vx = baseValues.earthVx;
         earth.vy = baseValues.earthVy;
+
         mars.x = baseValues.marsX;
         mars.y = baseValues.marsY;
         mars.vx = baseValues.marsVX;
         mars.vy = baseValues.marsVy;
 
+        ship.x = baseValues.spaceshipX;
+        ship.y = baseValues.spaceshipY;
+        ship.vx = baseValues.spaceshipVx;
+        ship.vy = baseValues.spaceshipVy;
     }
 
     private static void evolvePlanetStates(List<Planet> planets, double seconds) {
