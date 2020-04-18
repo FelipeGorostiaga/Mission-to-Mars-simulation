@@ -9,8 +9,6 @@ public class Planet implements Cloneable{
     double vx;
     double vy;
     double mass;
-    double prevX;
-    double prevY;
     double ax;
     double ay;
     double prevAx;

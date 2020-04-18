@@ -85,73 +85,71 @@ public class App {
         Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
         mars.radius = MARS_RADIUS;
-
+        Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
         double minDistanceToMars = Double.POSITIVE_INFINITY;
-
+        BaseValues baseValues = new BaseValues(earth, mars, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
-        initializePlanets(planets, oldPlanets);
+
         int iterations = 0;
         printPlanets(writer, planets, iterations++);
 
-        //Change starting date
-        /*LocalDate startDate;
+        // Change starting date
+        LocalDate startDate;
         for(int i = 0 ; i < DAYS_IN_A_YEAR * 2 ; i++) {
-            boolean tripSuccess = true;
-
-
-
-
-            //restore to default values
-            //evolve
-            evolvePlanetStates(planets, SECONDS_IN_DAY * i);
+            // restore to values to 06/04/2020
+            // evolve positions to new day
+            if(i != 0) {
+                restoreToBaseValues(planets, baseValues);
+                evolvePlanetStates(planets, SECONDS_IN_DAY * i);
+            }
+            // first step
+            initializePlanets(planets, oldPlanets);
             startDate = baseDate.plusDays(i);
-
+            boolean tripSuccess = false;
+            int frame = 0;
+            for(double t = 0; t < MAX_TRAVELLING_TIME; t += dt) {
+                oldPlanets = clonePlanets(planets);
+                for (Planet p : planets) {
+                    if (p.id != SUN_ID) {
+                        double[] force = force(p, oldPlanets);
+                        p.ax = force[0];
+                        p.ay = force[1];
+                        p.x = p.x + p.vx * dt + (2.0 / 3) * p.ax * Math.pow(dt, 2) - (1.0 / 6) * p.prevAx * Math.pow(dt, 2);
+                        p.y = p.y + p.vy * dt + (2.0 / 3) * p.ay * Math.pow(dt, 2) - (1.0 / 6) * p.prevAy * Math.pow(dt, 2);
+                    }
+                }
+                for (Planet p : planets) {
+                    if (p.id != SUN_ID) {
+                        double[] newForce = force(p, planets);
+                        double newAx = newForce[0];
+                        double newAy = newForce[1];
+                        p.vx = p.vx + (1.0 / 3) * newAx * dt + (5.0 / 6) * p.ax * dt - (1.0 / 6) * p.prevAx * dt;
+                        p.vy = p.vy + (1.0 / 3) * newAy * dt + (5.0 / 6) * p.ay * dt - (1.0 / 6) * p.prevAy * dt;
+                        p.prevAx = p.ax;
+                        p.prevAy = p.ay;
+                    }
+                }
+                double distanceToMars = calculateDistanceToMars(planets);
+                if(distanceToMars < minDistanceToMars) {
+                    minDistanceToMars = distanceToMars;
+                    if(distanceToMars < MISSION_SUCCESS_DISTANCE) {
+                        spaceship = planets.get(SPACESHIP_ID);
+                        System.out.println("Mission Success! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
+                        System.out.println("Time taken to arrive to Mars: " + t/SECONDS_IN_DAY + "days");
+                        System.out.println("Speed of spaceship: " + Math.sqrt( Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2)) + "km/s");
+                        System.out.println("Left earth: " + startDate);
+                        break;
+                    }
+                }
+                if(frame++ % fps == 0) {
+                    printPlanets(writer, planets, iterations++);
+                }
+            }
             System.out.println("Trip " + i + " - " + startDate);
-            System.out.println("Minimum distance to mars: ");
-            System.out.println(tripSuccess? "Successful" : "Unsuccessful");
-        }*/
-
-        int frame = 0;
-        for(double t = 0; t < MAX_TRAVELLING_TIME; t += dt) {
-            oldPlanets = clonePlanets(planets);
-            for (Planet p : planets) {
-                if (p.id != SUN_ID) {
-                    double[] force = force(p, oldPlanets);
-                    p.ax = force[0];
-                    p.ay = force[1];
-                    p.x = p.x + p.vx * dt + (2.0 / 3) * p.ax * Math.pow(dt, 2) - (1.0 / 6) * p.prevAx * Math.pow(dt, 2);
-                    p.y = p.y + p.vy * dt + (2.0 / 3) * p.ay * Math.pow(dt, 2) - (1.0 / 6) * p.prevAy * Math.pow(dt, 2);
-                }
-            }
-            for (Planet p : planets) {
-                if (p.id != SUN_ID) {
-                    double[] newForce = force(p, planets);
-                    double newAx = newForce[0];
-                    double newAy = newForce[1];
-                    p.vx = p.vx + (1.0 / 3) * newAx * dt + (5.0 / 6) * p.ax * dt - (1.0 / 6) * p.prevAx * dt;
-                    p.vy = p.vy + (1.0 / 3) * newAy * dt + (5.0 / 6) * p.ay * dt - (1.0 / 6) * p.prevAy * dt;
-                    p.prevAx = p.ax;
-                    p.prevAy = p.ay;
-                }
-            }
-            double distanceToMars = calculateDistanceToMars(planets);
-            if(distanceToMars < minDistanceToMars) {
-                minDistanceToMars = distanceToMars;
-                if(distanceToMars < MISSION_SUCCESS_DISTANCE) {
-                    Planet spaceship = planets.get(SPACESHIP_ID);
-                    System.out.println("Mission Success!! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
-                    System.out.println("Time taken to arrive to Mars: " + t/60/60/24 + "days");
-                    System.out.println("Speed of spaceship: " + Math.sqrt( Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2)) + "km/s");
-                    break;
-                }
-            }
-            if(frame++ % fps == 0) {
-                printPlanets(writer, planets, iterations++);
-            }
+            System.out.println("Total time: " + MAX_TRAVELLING_TIME/SECONDS_IN_DAY + " days");
+            System.out.println("Minimum distance to mars: " + (minDistanceToMars/1000) + " km");
         }
         writer.close();
-        System.out.println("Total time: " + MAX_TRAVELLING_TIME/60/60/24 + "days");
-        System.out.println("Minimum distance to mars: " + (minDistanceToMars/1000) + "km");
     }
 
     private static double calculateDistanceToMars(List<Planet> planets) {
@@ -160,6 +158,19 @@ public class App {
         return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2)) - MARS_RADIUS;
     }
 
+    private static void restoreToBaseValues(List<Planet> planets, BaseValues baseValues) {
+        Planet earth = getPlanetById(planets, EARTH_ID);
+        Planet mars = getPlanetById(planets, MARS_ID);
+        earth.x = baseValues.earthX;
+        earth.y = baseValues.earthY;
+        earth.vx = baseValues.earthVx;
+        earth.vy = baseValues.earthVy;
+        mars.x = baseValues.marsX;
+        mars.y = baseValues.marsY;
+        mars.vx = baseValues.marsVX;
+        mars.vy = baseValues.marsVy;
+
+    }
 
     private static void evolvePlanetStates(List<Planet> planets, double seconds) {
         List<Planet> oldPlanets;
@@ -272,7 +283,6 @@ public class App {
         }
         return clones;
     }
-
 
     //Print positions in kms, and velocities in km/s
     private static void printPlanets(PrintWriter writer, List<Planet> planets, int iterations) {
