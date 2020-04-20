@@ -14,9 +14,10 @@ public class Planet implements Cloneable{
     double prevAx;
     double prevAy;
     double radius;
+    int[] colour;
 
 
-    Planet(int id, double x, double y, double vx, double vy, double mass, double radius) {
+    Planet(int id, double x, double y, double vx, double vy, double mass, double radius, int[] colour) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -24,6 +25,7 @@ public class Planet implements Cloneable{
         this.vy = vy;
         this.mass = mass;
         this.radius = radius;
+        this.colour = colour;
     }
 
     Planet(int id, double x, double y, double vx, double vy){

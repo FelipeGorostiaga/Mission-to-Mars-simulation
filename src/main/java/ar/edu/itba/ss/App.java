@@ -13,39 +13,44 @@ public class App {
     private static final LocalDate baseDate = LocalDate.parse("2020-04-06", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
     private static double dt;
+
+    private static final double AU = 149598073;
+
+    private static final int[] EARTH_COLOUR = {0, 0, 255};
+    private static final int[] VOYAGER_COLOUR = {255, 255, 255};
+    private static final int[] SUN_COLOUR = {255, 255, 0};
+    private static final int[] MARS_COLOUR = {255,0,0};
+
     private static final int SUN_ID = 0;
     private static final int EARTH_ID = 1;
     private static final int MARS_ID = 2;
     private static final int SPACESHIP_ID = 3;
 
-    private static double G = 6.673 * Math.pow(10, -11);
+    private static double G = 6.674 * Math.pow(10, -11);
 
-    private static final int DAYS_IN_A_YEAR = 365;
     private static final double SECONDS_IN_DAY = 86400;
     private static final double MISSION_SUCCESS_DISTANCE = 3000000; //3000km
-
-    private static final double MAX_TRAVELLING_TIME = 86400000; //1000 days in seconds
+    private static final double MAX_TRAVELLING_TIME = 172800000; //2000 days in seconds
 
     // Spaceship
-    private static final double SPACESHIP_DISTANCE = 1500000; //15000km
-    private static final double SPACESHIP_SPEED = 8000;
-    private static final double STATION_SPEED = 7120;
+    private static final double SPACESHIP_DISTANCE = 1500000; //1500km
+    private static final double SPACESHIP_SPEED = 8000 + 7120;
+    // private static final double STATION_SPEED = 7120;
     private static final double SPACESHIP_MASS = 2 * Math.pow(10,5);
-    //TODO : check this
-    private static final double SPACESHIP_RADIUS = 10000;
+    private static final double SPACESHIP_RADIUS = 10000; // 10km?
+
     // Mars
     private static final double MARS_MASS = 6.4171 * Math.pow(10,23);
     private static final double MARS_RADIUS = 3389500;
+
     // Sun
     private static final double SUN_MASS = 1.988544 * Math.pow(10,30);
     private static final double SUN_RADIUS = 696340000;
+
     // Earth
     private static final double EARTH_MASS = 5.97219 * Math.pow(10,24);
     private static final double EARTH_RADIUS = 6371000;
 
-    // Saturn - part 3
-    // private static final double JUPITER_MASS = ;
-    // private static final double JUPITER_RADIUS = ;
 
     public static void main( String[] args ) {
         File file = new File("output.txt");
@@ -70,44 +75,51 @@ public class App {
 
         Planet earth = getPlanetById(planets, EARTH_ID);
         earth.mass = EARTH_MASS;
-        earth.radius = EARTH_RADIUS;
+        earth.radius = 0.13;
+        earth.colour = EARTH_COLOUR;
+
         double earthSunAngle = getEarthSunAngle(earth);
         double velocityAngle = getEarthSunVelocityAngle(earth);
         double spaceshipX = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
         double spaceshipY = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
-        double spaceshipVx = earth.vx + (SPACESHIP_SPEED + STATION_SPEED) * Math.cos(velocityAngle);
-        double spaceshipVy = earth.vy + (SPACESHIP_SPEED + STATION_SPEED) * Math.sin(velocityAngle);
+        double spaceshipVx = earth.vx + SPACESHIP_SPEED * Math.cos(velocityAngle);
+        double spaceshipVy = earth.vy + SPACESHIP_SPEED  * Math.sin(velocityAngle);
+        System.out.println("Starting speed " + Math.sqrt( Math.pow(spaceshipVx,2) + Math.pow(spaceshipVy,2))/1000  + " km/s" );
 
         // Add Sun and Spaceship
-        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, SUN_RADIUS));
-        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, SPACESHIP_RADIUS));
+        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.14, SUN_COLOUR));
+        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.08, VOYAGER_COLOUR));
 
         Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
-        mars.radius = MARS_RADIUS;
+        mars.radius = 0.13;
+        mars.colour = MARS_COLOUR;
         Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
-        double minDistanceToMars = Double.POSITIVE_INFINITY;
+
         BaseValues baseValues = new BaseValues(earth, mars, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
 
         int iterations = 0;
-        printPlanets(writer, planets, iterations++);
+        //printPlanets(writer, planets, iterations++);
 
         // Change starting date
-        LocalDate startDate;
-        for(int i = 0 ; i < DAYS_IN_A_YEAR * 2 ; i++) {
-            // restore to values to 06/04/2020
-            // evolve positions to new day
+        LocalDate startDate = baseDate;
+        double timeTaken = MAX_TRAVELLING_TIME;
+        for(int i = 0 ; i < 1000 ; i++) {
+            double minDistanceToMars = Double.POSITIVE_INFINITY;
+            // restore to values to 06/04/2020 and evolve positions to new day
             if(i != 0) {
                 restoreToBaseValues(planets, baseValues);
+                initializePlanets(planets, oldPlanets);
                 evolvePlanetStates(planets, SECONDS_IN_DAY * i);
+                startDate = baseDate.plusDays(i);
             }
-            // first step
-            initializePlanets(planets, oldPlanets);
-            startDate = baseDate.plusDays(i);
+            else {
+                initializePlanets(planets, oldPlanets);
+            }
             boolean tripSuccess = false;
             int frame = 0;
-            for(double t = 0; t < MAX_TRAVELLING_TIME; t += dt) {
+            for(double t = 0; t < time; t += dt) {
                 oldPlanets = clonePlanets(planets);
                 for (Planet p : planets) {
                     if (p.id != SUN_ID) {
@@ -133,21 +145,18 @@ public class App {
                 if(distanceToMars < minDistanceToMars) {
                     minDistanceToMars = distanceToMars;
                     if(distanceToMars < MISSION_SUCCESS_DISTANCE) {
-                        spaceship = planets.get(SPACESHIP_ID);
-                        System.out.println("Mission Success! Spaceship reached Mars " + minDistanceToMars/1000 + "km");
-                        System.out.println("Time taken to arrive to Mars: " + t/SECONDS_IN_DAY + "days");
-                        System.out.println("Speed of spaceship: " + Math.sqrt( Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2)) + "km/s");
-                        System.out.println("Left earth: " + startDate);
+                        timeTaken = t;
+                        tripSuccess = true;
                         break;
                     }
                 }
-                if(frame++ % fps == 0) {
+                /*if(frame++ % fps == 0) {
                     printPlanets(writer, planets, iterations++);
-                }
+                }*/
             }
-            System.out.println("Trip " + i + " - " + startDate);
-            System.out.println("Total time: " + MAX_TRAVELLING_TIME/SECONDS_IN_DAY + " days");
-            System.out.println("Minimum distance to mars: " + (minDistanceToMars/1000) + " km");
+            double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
+            double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
+            System.out.println(startDate + "\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
         }
         writer.close();
     }
@@ -182,7 +191,6 @@ public class App {
 
     private static void evolvePlanetStates(List<Planet> planets, double seconds) {
         List<Planet> oldPlanets;
-        double dt = 10;
         for(double t = 0; t < seconds; t += dt) {
             oldPlanets = clonePlanets(planets);
             for (Planet p : planets) {
@@ -297,7 +305,8 @@ public class App {
         writer.println(planets.size());
         writer.println(iterations);
         for (Planet p : planets) {
-            writer.println(p.id + "\t" + p.x/1000 + "\t" + p.y/1000 + "\t" + p.vx/1000 + "\t" + p.vy/1000 + "\t" + p.radius/1000);
+            writer.println(p.id + "\t" + p.x/1000/AU + "\t" + p.y/1000/AU + "\t" + p.vx + "\t" + p.vy + "\t" + p.radius
+                    + "\t" + p.colour[0] + "\t" + p.colour[1] + "\t" + p.colour[2]);
         }
     }
 
