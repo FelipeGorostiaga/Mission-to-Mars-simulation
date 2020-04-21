@@ -97,9 +97,9 @@ public class App {
 
         BaseValues baseValues = new BaseValues(earth, mars, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
-
+        List<Planet> startPlanets = clonePlanets(planets);
         int iterations = 0;
-        //printPlanets(writer, planets, iterations++);
+        printPlanets(writer, planets, iterations++);
 
         // Change starting date
         LocalDate startDate = baseDate;
@@ -110,7 +110,7 @@ public class App {
             if(i != 0) {
                 restoreToBaseValues(planets, baseValues);
                 initializePlanets(planets, oldPlanets);
-                evolvePlanetStates(planets, SECONDS_IN_DAY * i);
+                evolvePlanetStates(planets, SECONDS_IN_DAY);
                 double angle1 = getEarthSunAngle(earth);
                 double angle2 = getEarthSunVelocityAngle(earth);
                 double sx = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(angle1);
@@ -125,6 +125,7 @@ public class App {
                 spaceship.prevAx = force[0];
                 spaceship.prevAy = force[1];
                 startDate = baseDate.plusDays(i);
+                baseValues.newBaseValues(earth, mars, spaceship);
             }
             else {
                 initializePlanets(planets, oldPlanets);
@@ -228,15 +229,16 @@ public class App {
                     p.prevAx = p.ax;
                     p.prevAy = p.ay;
                 }
-                Planet spaceship = planets.get(SPACESHIP_ID);
-                Planet earth = planets.get(EARTH_ID);
-                double earthSunAngle = getEarthSunAngle(earth);
-                double velocityAngle = getEarthSunVelocityAngle(earth);
-                spaceship.x = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
-                spaceship.y = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
-                spaceship.vx = earth.vx + SPACESHIP_SPEED * Math.cos(velocityAngle);
-                spaceship.vy = earth.vy + SPACESHIP_SPEED  * Math.sin(velocityAngle);
             }
+            Planet spaceship = planets.get(SPACESHIP_ID);
+            Planet earth = planets.get(EARTH_ID);
+            double earthSunAngle = getEarthSunAngle(earth);
+            double velocityAngle = getEarthSunVelocityAngle(earth);
+            spaceship.x = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
+            spaceship.y = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
+            spaceship.vx = earth.vx + SPACESHIP_SPEED * Math.cos(velocityAngle);
+            spaceship.vy = earth.vy + SPACESHIP_SPEED  * Math.sin(velocityAngle);
+
         }
     }
 

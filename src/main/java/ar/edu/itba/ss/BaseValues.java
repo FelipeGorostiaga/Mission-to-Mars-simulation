@@ -41,4 +41,19 @@ public class BaseValues {
         this.marsVX = marsVX;
         this.marsVy = marsVy;
     }
+
+    public void newBaseValues(Planet earth, Planet mars, Planet spaceship){
+        earthX = earth.x;
+        earthY = earth.y;
+        earthVx = earth.vx;
+        earthVy = earth.vy;
+        marsX = mars.x;
+        marsY = mars.y;
+        marsVX = mars.vx;
+        marsVy = mars.vy;
+        spaceshipX = spaceship.x;
+        spaceshipY = spaceship.y;
+        spaceshipVx = spaceship.vx;
+        spaceshipVy = spaceship.vy;
+    }
 }
