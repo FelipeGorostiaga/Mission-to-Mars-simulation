@@ -150,9 +150,9 @@ public class App {
                         break;
                     }
                 }
-                /*if(frame++ % fps == 0) {
-                    printPlanets(writer, planets, iterations++);
-                }*/
+//                if(frame++ % fps == 0) {
+//                    printPlanets(writer, planets, iterations++);
+//                }
             }
             double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
             double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
@@ -194,7 +194,7 @@ public class App {
         for(double t = 0; t < seconds; t += dt) {
             oldPlanets = clonePlanets(planets);
             for (Planet p : planets) {
-                if (p.id != SUN_ID) {
+                if (p.id != SUN_ID && p.id != SPACESHIP_ID) {
                     double[] force = force(p, oldPlanets);
                     p.ax = force[0];
                     p.ay = force[1];
@@ -203,7 +203,7 @@ public class App {
                 }
             }
             for (Planet p : planets) {
-                if (p.id != SUN_ID) {
+                if (p.id != SUN_ID && p.id != SPACESHIP_ID) {
                     double[] newForce = force(p, planets);
                     double newAx = newForce[0];
                     double newAy = newForce[1];
@@ -212,7 +212,20 @@ public class App {
                     p.prevAx = p.ax;
                     p.prevAy = p.ay;
                 }
+                Planet spaceship = planets.get(SPACESHIP_ID);
+                Planet earth = planets.get(EARTH_ID);
+                double earthSunAngle = getEarthSunAngle(earth);
+                double velocityAngle = getEarthSunVelocityAngle(earth);
+                spaceship.x = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(earthSunAngle);
+                spaceship.y = earth.y + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.sin(earthSunAngle);
+                spaceship.vx = earth.vx + SPACESHIP_SPEED * Math.cos(velocityAngle);
+                spaceship.vy = earth.vy + SPACESHIP_SPEED  * Math.sin(velocityAngle);
             }
+
+
+
+
+
         }
     }
 
