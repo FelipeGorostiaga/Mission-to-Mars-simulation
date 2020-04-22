@@ -8,9 +8,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.time.temporal.ChronoUnit.DAYS;
+
 public class App {
 
     private static final LocalDate baseDate = LocalDate.parse("2020-04-06", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    private static final LocalDate secondDate = LocalDate.parse("2020-07-16", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
     private static double dt;
 
@@ -74,7 +77,7 @@ public class App {
 
         Planet earth = getPlanetById(planets, EARTH_ID);
         earth.mass = EARTH_MASS;
-        earth.radius = 0.13;
+        earth.radius = 0.03;
         earth.colour = EARTH_COLOUR;
 
         double earthSunAngle = getEarthSunAngle(earth);
@@ -86,22 +89,23 @@ public class App {
         System.out.println("Starting speed " + Math.sqrt( Math.pow(spaceshipVx,2) + Math.pow(spaceshipVy,2))/1000  + " km/s" );
 
         // Add Sun and Spaceship
-        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.14, SUN_COLOUR));
-        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.08, VOYAGER_COLOUR));
+        planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.15, SUN_COLOUR));
+        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.001, VOYAGER_COLOUR));
 
         Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
-        mars.radius = 0.13;
+        mars.radius = 0.01;
         mars.colour = MARS_COLOUR;
         Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
 
         BaseValues baseValues = new BaseValues(earth, mars, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
-        List<Planet> startPlanets = clonePlanets(planets);
-        int iterations = 0;
+         int iterations = 0;
         printPlanets(writer, planets, iterations++);
 
         // Change starting date
+        int difDays = (int) baseDate.until(secondDate, DAYS);
+
         LocalDate startDate = baseDate;
         double timeTaken = MAX_TRAVELLING_TIME;
         for(int i = 0 ; i < 1000 ; i++) {
@@ -110,7 +114,11 @@ public class App {
             if(i != 0) {
                 restoreToBaseValues(planets, baseValues);
                 initializePlanets(planets, oldPlanets);
-                evolvePlanetStates(planets, SECONDS_IN_DAY);
+                if(i <= difDays) {
+                    evolvePlanetStates(planets, SECONDS_IN_DAY);
+                }else{
+                    evolvePlanetStates(planets, SECONDS_IN_DAY/12);
+                }
                 double angle1 = getEarthSunAngle(earth);
                 double angle2 = getEarthSunVelocityAngle(earth);
                 double sx = earth.x + (SPACESHIP_DISTANCE + EARTH_RADIUS) * Math.cos(angle1);
@@ -124,7 +132,14 @@ public class App {
                 double[] force = force(spaceship, planets);
                 spaceship.prevAx = force[0];
                 spaceship.prevAy = force[1];
-                startDate = baseDate.plusDays(i);
+                if(i <= difDays){
+                    startDate = baseDate.plusDays(i);
+                }else{
+                    if((i - difDays) % 12 == 0){
+                        startDate = baseDate.plusDays(difDays + (i - difDays)/12);
+                    }
+                }
+
                 baseValues.newBaseValues(earth, mars, spaceship);
             }
             else {
@@ -167,9 +182,9 @@ public class App {
                         break;
                     }
                 }
-//                if(frame++ % fps == 0) {
-//                    printPlanets(writer, planets, iterations++);
-//                }
+                if(frame++ % fps == 0) {
+                    printPlanets(writer, planets, iterations++);
+                }
             }
             double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
             double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
