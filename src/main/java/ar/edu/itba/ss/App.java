@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.ChronoUnit.YEARS;
 
 public class App {
 
@@ -55,7 +56,7 @@ public class App {
 
 
     public static void main( String[] args ) {
-        File file = new File("output.txt");
+        //File file = new File("output.txt");
         PrintWriter writer = null;
         try {
             writer = new PrintWriter("output.xyz", "UTF-8");
@@ -63,6 +64,16 @@ public class App {
             System.out.println("Couldn't write output to file...");
             System.exit(1);
         }
+
+        PrintWriter writer2 = null;
+        try {
+            writer2 = new PrintWriter("output.txt", "UTF-8");
+        } catch (Exception e) {
+            System.out.println("Couldn't write output to file...");
+            System.exit(1);
+        }
+
+
         Configuration configuration = CommandLineParser.parseCommandLine(args);
         List<Planet> planets = null;
         try {
@@ -71,6 +82,8 @@ public class App {
             System.out.println("Error reading dynamic file...");
             System.exit(1);
         }
+
+
         double time = configuration.getTime();
         double fps = configuration.getFps();
         dt = configuration.getDt();
@@ -105,7 +118,7 @@ public class App {
 
         // Change starting date
         int difDays = (int) baseDate.until(secondDate, DAYS);
-
+        int hour = 0;
         LocalDate startDate = baseDate;
         double timeTaken = MAX_TRAVELLING_TIME;
         for(int i = 0 ; i < 1000 ; i++) {
@@ -117,7 +130,7 @@ public class App {
                 if(i <= difDays) {
                     evolvePlanetStates(planets, SECONDS_IN_DAY);
                 }else{
-                    evolvePlanetStates(planets, SECONDS_IN_DAY/12);
+                    evolvePlanetStates(planets, SECONDS_IN_DAY/24);
                 }
                 double angle1 = getEarthSunAngle(earth);
                 double angle2 = getEarthSunVelocityAngle(earth);
@@ -135,8 +148,11 @@ public class App {
                 if(i <= difDays){
                     startDate = baseDate.plusDays(i);
                 }else{
-                    if((i - difDays) % 12 == 0){
-                        startDate = baseDate.plusDays(difDays + (i - difDays)/12);
+                    if((i - difDays) % 24 == 0){
+                        startDate = baseDate.plusDays(difDays + (i - difDays)/24);
+                        hour = 0;
+                    }else{
+                        hour++;
                     }
                 }
 
@@ -188,9 +204,12 @@ public class App {
             }
             double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
             double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
-            System.out.println(startDate + "\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
+            System.out.println(startDate +" "+ hour + ":00:00\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
+            printDateCalculations(writer2, startDate, hour, minDistanceToMars/1000);
         }
+        writer2.close();
         writer.close();
+
     }
 
     private static double calculateDistanceToMars(List<Planet> planets) {
@@ -349,6 +368,11 @@ public class App {
             writer.println(p.id + "\t" + p.x/1000/AU + "\t" + p.y/1000/AU + "\t" + p.vx + "\t" + p.vy + "\t" + p.radius
                     + "\t" + p.colour[0] + "\t" + p.colour[1] + "\t" + p.colour[2]);
         }
+    }
+
+    private static void printDateCalculations(PrintWriter writer, LocalDate date, int hour, double minDist){
+        writer.println(date + "-" + hour +  "\t" + minDist);
+        writer.flush();
     }
 
     private static Planet getPlanetById(List<Planet> planets, int id) {
