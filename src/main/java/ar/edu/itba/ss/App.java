@@ -14,7 +14,7 @@ import static java.time.temporal.ChronoUnit.YEARS;
 public class App {
 
     private static final LocalDate baseDate = LocalDate.parse("2020-04-06", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    private static final LocalDate secondDate = LocalDate.parse("2020-07-16", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    private static final LocalDate secondDate = LocalDate.parse("2020-07-20", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
     private static double dt;
 
@@ -57,13 +57,6 @@ public class App {
 
     public static void main( String[] args ) {
         //File file = new File("output.txt");
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter("output.xyz", "UTF-8");
-        } catch (Exception e) {
-            System.out.println("Couldn't write output to file...");
-            System.exit(1);
-        }
 
         PrintWriter writer2 = null;
         try {
@@ -103,25 +96,34 @@ public class App {
 
         // Add Sun and Spaceship
         planets.add(new Planet(SUN_ID, 0.0, 0.0, 0, 0, SUN_MASS, 0.15, SUN_COLOUR));
-        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.001, VOYAGER_COLOUR));
+        planets.add(new Planet(SPACESHIP_ID, spaceshipX, spaceshipY, spaceshipVx, spaceshipVy, SPACESHIP_MASS, 0.005, VOYAGER_COLOUR));
 
         Planet mars = getPlanetById(planets, MARS_ID);
         mars.mass = MARS_MASS;
-        mars.radius = 0.01;
+        mars.radius = 0.015;
         mars.colour = MARS_COLOUR;
         Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
 
         BaseValues baseValues = new BaseValues(earth, mars, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
          int iterations = 0;
-        printPlanets(writer, planets, iterations++);
+
+        boolean tripSuccess = false;
 
         // Change starting date
         int difDays = (int) baseDate.until(secondDate, DAYS);
         int hour = 0;
         LocalDate startDate = baseDate;
         double timeTaken = MAX_TRAVELLING_TIME;
-        for(int i = 0 ; i < 1000 ; i++) {
+        for(int i = 0 ; i < 1000 /*&& !tripSuccess*/ ; i++) {
+            PrintWriter writer = null;
+            try {
+                writer = new PrintWriter("output.xyz", "UTF-8");
+            } catch (Exception e) {
+                System.out.println("Couldn't write output to file...");
+                System.exit(1);
+            }
+
             double minDistanceToMars = Double.POSITIVE_INFINITY;
             // restore to values to 06/04/2020 and evolve positions to new day
             if(i != 0) {
@@ -130,7 +132,7 @@ public class App {
                 if(i <= difDays) {
                     evolvePlanetStates(planets, SECONDS_IN_DAY);
                 }else{
-                    evolvePlanetStates(planets, SECONDS_IN_DAY/24);
+                    evolvePlanetStates(planets, SECONDS_IN_DAY/96);
                 }
                 double angle1 = getEarthSunAngle(earth);
                 double angle2 = getEarthSunVelocityAngle(earth);
@@ -148,8 +150,8 @@ public class App {
                 if(i <= difDays){
                     startDate = baseDate.plusDays(i);
                 }else{
-                    if((i - difDays) % 24 == 0){
-                        startDate = baseDate.plusDays(difDays + (i - difDays)/24);
+                    if((i - difDays) % 96 == 0){
+                        startDate = baseDate.plusDays(difDays + (i - difDays)/96);
                         hour = 0;
                     }else{
                         hour++;
@@ -161,11 +163,13 @@ public class App {
             else {
                 initializePlanets(planets, oldPlanets);
             }
-            boolean tripSuccess = false;
+
             int frame = 0;
+            iterations = 0;
 
             //System.out.println(earth.x/1000 + "\t" + earth.y/1000  + "\t" + earth.vx/1000 + "\t" + earth.vy/1000);
             //System.out.println(mars.x/1000 + "\t" + mars.y/1000  + "\t" + mars.vx/1000 + "\t" + mars.vy/1000);
+            printPlanets(writer, planets, iterations++);
 
             for(double t = 0; t < time; t += dt) {
                 oldPlanets = clonePlanets(planets);
@@ -196,19 +200,43 @@ public class App {
                         timeTaken = t;
                         tripSuccess = true;
                         break;
+//                        if(distanceToMars <= 0){
+//                            minDistanceToMars = 0;
+//                            break;
+//                        }
                     }
+
                 }
                 if(frame++ % fps == 0) {
                     printPlanets(writer, planets, iterations++);
                 }
             }
+            int min = 0;
+            int hs = hour;
+            if(hour % 4 == 0){
+                hs = hour/4;
+                min = 0;
+            }if(hour % 4 == 1){
+                hs = (int) Math.floor(hour/4);
+                min = 15;
+            }if(hour % 4 == 2){
+                hs = (int) Math.floor(hour/4);
+                min = 30;
+            }if(hour % 4 == 3){
+                hs = (int) Math.floor(hour/4);
+                min = 45;
+            }
             double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
             double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
-            System.out.println(startDate +" "+ hour + ":00:00\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
-            printDateCalculations(writer2, startDate, hour, minDistanceToMars/1000);
+            System.out.println(startDate +" "+ hs +":"+ min +":00\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
+            printDateCalculations(writer2, startDate, hs, min, minDistanceToMars/1000);
+            tripSuccess = false;
+            writer.close();
         }
+
+
         writer2.close();
-        writer.close();
+
 
     }
 
@@ -370,8 +398,8 @@ public class App {
         }
     }
 
-    private static void printDateCalculations(PrintWriter writer, LocalDate date, int hour, double minDist){
-        writer.println(date + "-" + hour +  "\t" + minDist);
+    private static void printDateCalculations(PrintWriter writer, LocalDate date, int hour, int min, double minDist){
+        writer.println(date + "-" + hour + ":" + min + "\t" + minDist);
         writer.flush();
     }
 
@@ -383,6 +411,8 @@ public class App {
     }
 
 }
+
+
 
 
 
