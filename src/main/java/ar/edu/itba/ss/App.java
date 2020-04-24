@@ -14,7 +14,7 @@ import static java.time.temporal.ChronoUnit.YEARS;
 public class App {
 
     private static final LocalDate baseDate = LocalDate.parse("2020-04-06", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    private static final LocalDate secondDate = LocalDate.parse("2020-07-20", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    private static final LocalDate secondDate = LocalDate.parse("2021-05-23", DateTimeFormatter.ofPattern("yyyy-MM-dd"));
 
     private static double dt;
 
@@ -24,11 +24,13 @@ public class App {
     private static final int[] VOYAGER_COLOUR = {255, 255, 255};
     private static final int[] SUN_COLOUR = {255, 255, 0};
     private static final int[] MARS_COLOUR = {255,0,0};
+    private static final int[] JUPITER_COLOUR = {200, 100, 0};
 
     private static final int SUN_ID = 0;
     private static final int EARTH_ID = 1;
     private static final int MARS_ID = 2;
-    private static final int SPACESHIP_ID = 3;
+    private static final int SPACESHIP_ID = 4;
+    private static final int JUPITER_ID = 3;
 
     private static double G = 6.674 * Math.pow(10, -11);
 
@@ -53,6 +55,10 @@ public class App {
     // Earth
     private static final double EARTH_MASS = 5.97219 * Math.pow(10,24);
     private static final double EARTH_RADIUS = 6371000;
+
+    //Jupiter
+    private static final double JUPITER_MASS = 1.898 * Math.pow(10, 27);
+    private static final double JUPITER_RADIO = 69911000;
 
 
     public static void main( String[] args ) {
@@ -102,9 +108,15 @@ public class App {
         mars.mass = MARS_MASS;
         mars.radius = 0.015;
         mars.colour = MARS_COLOUR;
+
+        Planet jupiter = getPlanetById(planets, JUPITER_ID);
+        jupiter.mass = JUPITER_MASS;
+        jupiter.radius = 0.09;
+        jupiter.colour = JUPITER_COLOUR;
+
         Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
 
-        BaseValues baseValues = new BaseValues(earth, mars, spaceship);
+        BaseValues baseValues = new BaseValues(earth, jupiter /*mars*/, spaceship);
         List<Planet> oldPlanets = clonePlanets(planets);
          int iterations = 0;
 
@@ -115,7 +127,7 @@ public class App {
         int hour = 0;
         LocalDate startDate = baseDate;
         double timeTaken = MAX_TRAVELLING_TIME;
-        for(int i = 0 ; i < 1000 /*&& !tripSuccess*/ ; i++) {
+        for(int i = 0 ; i < 1000 && !tripSuccess ; i++) {
             PrintWriter writer = null;
             try {
                 writer = new PrintWriter("output.xyz", "UTF-8");
@@ -132,7 +144,7 @@ public class App {
                 if(i <= difDays) {
                     evolvePlanetStates(planets, SECONDS_IN_DAY);
                 }else{
-                    evolvePlanetStates(planets, SECONDS_IN_DAY/96);
+                    evolvePlanetStates(planets, SECONDS_IN_DAY/24);
                 }
                 double angle1 = getEarthSunAngle(earth);
                 double angle2 = getEarthSunVelocityAngle(earth);
@@ -150,15 +162,15 @@ public class App {
                 if(i <= difDays){
                     startDate = baseDate.plusDays(i);
                 }else{
-                    if((i - difDays) % 96 == 0){
-                        startDate = baseDate.plusDays(difDays + (i - difDays)/96);
+                    if((i - difDays) % 24 == 0){
+                        startDate = baseDate.plusDays(difDays + (i - difDays)/24);
                         hour = 0;
                     }else{
                         hour++;
                     }
                 }
 
-                baseValues.newBaseValues(earth, mars, spaceship);
+                baseValues.newBaseValues(earth, jupiter /*mars*/, spaceship);
             }
             else {
                 initializePlanets(planets, oldPlanets);
@@ -194,9 +206,15 @@ public class App {
                     }
                 }
                 double distanceToMars = calculateDistanceToMars(planets);
-                if(distanceToMars < minDistanceToMars) {
-                    minDistanceToMars = distanceToMars;
-                    if(distanceToMars < MISSION_SUCCESS_DISTANCE) {
+                double distanceToJupiter = calculateDistanceToJupiter(planets);
+
+                if(distanceToMars <= 0) {
+                    break;
+
+                }
+                if(distanceToJupiter < minDistanceToMars) {
+                    minDistanceToMars = distanceToJupiter;
+                    if(distanceToJupiter < MISSION_SUCCESS_DISTANCE) {
                         timeTaken = t;
                         tripSuccess = true;
                         break;
@@ -207,25 +225,26 @@ public class App {
                     }
 
                 }
+
                 if(frame++ % fps == 0) {
                     printPlanets(writer, planets, iterations++);
                 }
             }
             int min = 0;
-            int hs = hour;
-            if(hour % 4 == 0){
-                hs = hour/4;
-                min = 0;
-            }if(hour % 4 == 1){
-                hs = (int) Math.floor(hour/4);
-                min = 15;
-            }if(hour % 4 == 2){
-                hs = (int) Math.floor(hour/4);
-                min = 30;
-            }if(hour % 4 == 3){
-                hs = (int) Math.floor(hour/4);
-                min = 45;
-            }
+            int hs =  hour;
+//            if(hour % 4 == 0){
+//                hs = hour/4;
+//                min = 0;
+//            }if(hour % 4 == 1){
+//                hs = (int) Math.floor(hour/4);
+//                min = 15;
+//            }if(hour % 4 == 2){
+//                hs = (int) Math.floor(hour/4);
+//                min = 30;
+//            }if(hour % 4 == 3){
+//                hs = (int) Math.floor(hour/4);
+//                min = 45;
+//            }
             double speed = Math.sqrt(Math.pow(spaceship.vx,2) + Math.pow(spaceship.vy,2));
             double days = tripSuccess? (timeTaken /SECONDS_IN_DAY) : (MAX_TRAVELLING_TIME/SECONDS_IN_DAY);
             System.out.println(startDate +" "+ hs +":"+ min +":00\t" + minDistanceToMars/1000 + "\t" + speed/1000 + "\t" + days);
@@ -245,6 +264,13 @@ public class App {
         Planet mars = getPlanetById(planets, MARS_ID);
         return Math.sqrt(Math.pow(spaceship.x - mars.x, 2) + Math.pow(spaceship.y - mars.y, 2)) - MARS_RADIUS;
     }
+
+    private static double calculateDistanceToJupiter(List<Planet> planets) {
+        Planet spaceship = getPlanetById(planets, SPACESHIP_ID);
+        Planet jupiter = getPlanetById(planets, JUPITER_ID);
+        return Math.sqrt(Math.pow(spaceship.x - jupiter.x, 2) + Math.pow(spaceship.y - jupiter.y, 2)) - JUPITER_RADIO;
+    }
+
 
     private static void restoreToBaseValues(List<Planet> planets, BaseValues baseValues) {
 
